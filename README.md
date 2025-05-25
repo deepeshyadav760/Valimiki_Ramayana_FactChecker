@@ -94,7 +94,7 @@ To scrape the data from the Ramayana:
    Hanuman burned Lanka.
    ```
 
-2. Run the `ramayana_verify.py` script and provide the path to `statements.csv` inside the file.
+2. Run the `ramayana_verify.py` script and provide the path to input file -> `statements.csv` and `output file` inside the file.
 
    ```bash
    python ramayana_verify.py
