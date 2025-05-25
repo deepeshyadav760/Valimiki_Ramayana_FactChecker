@@ -62,7 +62,7 @@ ramayana-fact-verification/
 
 ## 📥 Data Scraping
 
-To scrape the data from the Ramayana:
+To scrape the data from the Srimad Valmiki Ramayana -> `https://valmikiramayan.net/`
 
 1. Run the `data_scrapper.py` script:
 
