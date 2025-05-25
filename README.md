@@ -1,4 +1,4 @@
-# Ramayana Fact Verification
+# 🧠 Ramayana Fact Verification
 
 This project is designed to verify factual claims against the verses of the **Ramayana**. It uses semantic search and natural language processing techniques to determine whether a given statement is **True**, **False**, or **Unverifiable** based on the scripture.
 
