@@ -1,4 +1,3 @@
-# Valimiki_Ramayana_FactChecker
 # 🧠 Ramayana Fact Verification
 
 This project aims to verify factual statements related to the Ramayana using semantic search and natural language processing (NLP) techniques. It includes data preprocessing, embedding generation, and fact-checking functionalities through custom scripts and models.
