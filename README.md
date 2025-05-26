@@ -20,7 +20,47 @@ ramayana-fact-verification/
 ├── README.md                             # Project documentation
 ```
 
----
+## Algorithm Flow
+                                                STATEMENT INPUT
+                                                      │
+                                                      ▼
+                                                ┌─────────────┐
+                                                │   STEP 1    │ ──── Text Cleaning & Normalization
+                                                │  PREPROCESS │      ├── Remove special characters
+                                                └─────────────┘      ├── Convert to lowercase
+                                                      │              └── Handle whitespace
+                                                      ▼
+                                                ┌─────────────┐
+                                                │   STEP 2    │ ──── Relevance Filtering
+                                                │   FILTER    │      ├── Detect modern content
+                                                └─────────────┘      └── Check for vague statements
+                                                      │
+                                                      ▼
+                                                ┌─────────────┐
+                                                │   STEP 3    │ ──── Semantic Embedding
+                                                │   EMBED     │      ├── Generate statement vector
+                                                └─────────────┘      └── Load verse embeddings
+                                                      │
+                                                      ▼
+                                                ┌─────────────┐
+                                                │   STEP 4    │ ──── Similarity Computation
+                                                │  SIMILARITY │      ├── Calculate cosine similarity
+                                                └─────────────┘      └── Rank verses by similarity
+                                                      │
+                                                      ▼
+                                                ┌─────────────┐
+                                                │   STEP 5    │ ──── Semantic Analysis
+                                                │   ANALYZE   │      ├── Word overlap analysis
+                                                └─────────────┘      └── Negation conflict detection
+                                                      │
+                                                      ▼
+                                                ┌─────────────┐
+                                                │   STEP 6    │ ──── Truth Classification
+                                                │  CLASSIFY   │      ├── Statistical scoring
+                                                └─────────────┘      └── Threshold-based decision
+                                                      │
+                                                      ▼
+                                                RESULT OUTPUT (True/False/None)
 
 ## 📌 Features
 
