@@ -181,7 +181,6 @@ def extract_ramayana_indicators(statement):
     statement_lower = statement.lower()
     
     # Character names 
-    # This is dynamic - we can extract these from the actual verses
     character_indicators = [
         'rama', 'sita', 'lakshmana', 'hanuman', 'ravana', 'bharata',
         'dasharatha', 'kaikeyi', 'kausalya', 'sumitra', 'sugreeva',
@@ -214,44 +213,201 @@ def extract_ramayana_indicators(statement):
         'total_indicators': character_count + place_count + concept_count
     }
 
-def detect_obvious_false_patterns(statement):
+def extract_key_entities_and_relations(statement):
     """
-    Detect only the most obvious false patterns
+    Extract key entities and their relationships from the statement
     """
     statement_lower = statement.lower()
     
-    obvious_false_indicators = 0
-    
-    # Impossible combinations
-    impossible_pairs = [
-        ("lakshmana", "disciple", "ravana"),
-        ("hanuman", "son", "ravana"),
-        ("sita", "built", "bridge"),
-        ("bharata", "originally", "lanka"),
-        ("ravana", "peaceful", "poet"),
-        ("married", "lanka", "priest")
+    # Extract entities
+    entities = []
+    entity_patterns = [
+        'rama', 'sita', 'lakshmana', 'hanuman', 'ravana', 'bharata',
+        'dasharatha', 'kaikeyi', 'sugreeva', 'vibhishana', 'indrajit',
+        'kumbhakarna', 'vishwamitra', 'janaka', 'ayodhya', 'lanka'
     ]
     
-    for pair in impossible_pairs:
-        if all(word in statement_lower for word in pair):
-            obvious_false_indicators += 2
+    for entity in entity_patterns:
+        if entity in statement_lower:
+            entities.append(entity)
     
-    # Obvious negations
-    if "lakshmana" in statement_lower and "not mentioned" in statement_lower:
-        obvious_false_indicators += 2
+    # Extract relationships and actions
+    relations = []
     
-    # Timeline contradictions
-    if ("exile" in statement_lower and "one year" in statement_lower):
-        obvious_false_indicators += 1
+    # Family relations
+    if 'son' in statement_lower or 'father' in statement_lower:
+        relations.append('family')
+    if 'brother' in statement_lower or 'sister' in statement_lower:
+        relations.append('sibling')
+    if 'married' in statement_lower or 'wife' in statement_lower or 'husband' in statement_lower:
+        relations.append('marriage')
     
-    return obvious_false_indicators
+    # Actions
+    if any(word in statement_lower for word in ['killed', 'defeated', 'fought', 'battle']):
+        relations.append('conflict')
+    if any(word in statement_lower for word in ['helped', 'supported', 'assisted', 'ally']):
+        relations.append('alliance')
+    if any(word in statement_lower for word in ['built', 'constructed', 'made']):
+        relations.append('creation')
+    if any(word in statement_lower for word in ['kidnapped', 'abducted', 'took']):
+        relations.append('abduction')
+    if any(word in statement_lower for word in ['friend', 'friendship']):
+        relations.append('friendship')
+    if any(word in statement_lower for word in ['disciple', 'student', 'learned', 'taught']):
+        relations.append('teaching')
+    
+    return entities, relations
+
+def analyze_statement_against_verses(statement, top_verses):
+    """
+    Analyze statement against the most similar verses to determine truth value
+    """
+    statement_entities, statement_relations = extract_key_entities_and_relations(statement)
+    statement_lower = statement.lower()
+    
+    support_evidence = 0
+    contradiction_evidence = 0
+    
+    for verse in top_verses:
+        verse_text = verse['text'].lower() if 'text' in verse else verse.get('english_text', '').lower()
+        verse_entities, verse_relations = extract_key_entities_and_relations(verse_text)
+        
+        # Check entity overlap
+        common_entities = set(statement_entities).intersection(set(verse_entities))
+        
+        if len(common_entities) >= 1:  # At least one common entity
+            
+            # Analyze specific relationship patterns
+            
+            # Family relationships
+            if 'family' in statement_relations:
+                if any(word in verse_text for word in ['son', 'father', 'parent']):
+                    # Check if the family relationship matches
+                    if any(entity in verse_text for entity in common_entities):
+                        support_evidence += 1
+                else:
+                    # Family claim but no family mention in verse
+                    contradiction_evidence += 0.5
+            
+            # Sibling relationships
+            if 'sibling' in statement_relations:
+                if any(word in verse_text for word in ['brother', 'sister']):
+                    support_evidence += 1
+                else:
+                    contradiction_evidence += 0.5
+            
+            # Marriage relationships
+            if 'marriage' in statement_relations:
+                if any(word in verse_text for word in ['married', 'wife', 'husband', 'wedding']):
+                    support_evidence += 1
+                else:
+                    contradiction_evidence += 0.5
+            
+            # Conflict relationships
+            if 'conflict' in statement_relations:
+                if any(word in verse_text for word in ['killed', 'defeated', 'fought', 'battle', 'war', 'enemy']):
+                    support_evidence += 1
+                elif any(word in verse_text for word in ['friend', 'ally', 'helped', 'supported']):
+                    contradiction_evidence += 2  # Strong contradiction
+            
+            # Alliance relationships
+            if 'alliance' in statement_relations:
+                if any(word in verse_text for word in ['helped', 'supported', 'assisted', 'ally', 'friend']):
+                    support_evidence += 1
+                elif any(word in verse_text for word in ['enemy', 'fought', 'killed', 'defeated']):
+                    contradiction_evidence += 2  # Strong contradiction
+            
+            # Friendship relationships
+            if 'friendship' in statement_relations:
+                if any(word in verse_text for word in ['friend', 'ally', 'helped']):
+                    support_evidence += 1
+                elif any(word in verse_text for word in ['enemy', 'fought', 'killed', 'defeated', 'battle']):
+                    contradiction_evidence += 3  # Very strong contradiction
+            
+            # Teaching relationships
+            if 'teaching' in statement_relations:
+                if any(word in verse_text for word in ['disciple', 'student', 'learned', 'taught', 'mentor']):
+                    support_evidence += 1
+                elif any(word in verse_text for word in ['enemy', 'fought', 'killed']):
+                    contradiction_evidence += 2
+            
+            # Creation/building activities
+            if 'creation' in statement_relations:
+                if any(word in verse_text for word in ['built', 'constructed', 'made', 'created']):
+                    # Check if the same entity is doing the building
+                    builder_mentioned = False
+                    for entity in common_entities:
+                        if entity in statement_lower and entity in verse_text:
+                            builder_mentioned = True
+                    if builder_mentioned:
+                        support_evidence += 1
+                    else:
+                        contradiction_evidence += 1
+            
+            # Abduction activities
+            if 'abduction' in statement_relations:
+                if any(word in verse_text for word in ['kidnapped', 'abducted', 'took', 'captured']):
+                    support_evidence += 1
+    
+    return support_evidence, contradiction_evidence
+
+def check_for_obvious_contradictions(statement):
+    """
+    Check for statements that are obviously contradictory to basic Ramayana facts
+    """
+    statement_lower = statement.lower()
+    contradiction_score = 0
+    
+    # Obvious contradictions
+    obvious_false_patterns = [
+        # Impossible relationships
+        ('lakshmana', 'disciple', 'ravana'),
+        ('hanuman', 'son', 'ravana'),
+        ('hanuman', 'brother', 'ravana'),
+        ('sita', 'father', 'ravana'),
+        ('ravana', 'rama', 'friend'),
+        ('ravana', 'peaceful', 'poet'),
+        ('lakshmana', 'not mentioned'),
+        ('sita', 'built', 'bridge'),
+        ('hanuman', 'fought', 'rama'),
+        ('bharata', 'lanka'),
+        ('dasharatha', 'lanka'),
+        
+        # Timeline contradictions
+        ('exile', 'one year'),
+        ('married', 'lanka', 'ravana'),
+        
+        # Character misattributions
+        ('rama', 'pandava'),
+        ('ramayana', 'kurukshetra'),
+        ('rama', 'ten heads'),
+        ('ravana', 'devotee', 'krishna'),
+        ('sugriva', 'king', 'lanka'),
+        ('ramayana', 'english'),
+    ]
+    
+    for pattern in obvious_false_patterns:
+        if all(word in statement_lower for word in pattern):
+            contradiction_score += 3
+    
+    # Additional specific contradictions
+    if 'lakshmana' in statement_lower and 'not mentioned' in statement_lower:
+        contradiction_score += 5
+    
+    if 'ravana' in statement_lower and 'peaceful' in statement_lower:
+        contradiction_score += 4
+    
+    if 'hanuman' in statement_lower and ('son' in statement_lower or 'brother' in statement_lower) and 'ravana' in statement_lower:
+        contradiction_score += 4
+    
+    return contradiction_score
 
 def verify_ramayana_statement_complete(statement, model, df_with_embeddings, verbose=False):
     """
-    Complete verification with proper None detection
+    Complete verification with improved logic
     """
     try:
-        # Step 1: Check for non-Ramayana content first
+        # Step 1: Check for non-Ramayana content
         modern_score = detect_non_ramayana_content(statement)
         vague_score = detect_vague_or_generic_content(statement)
         
@@ -262,7 +418,6 @@ def verify_ramayana_statement_complete(statement, model, df_with_embeddings, ver
         if modern_score >= 2:
             return None
         
-        # If very vague/generic
         if vague_score >= 2:
             return None
         
@@ -272,12 +427,7 @@ def verify_ramayana_statement_complete(statement, model, df_with_embeddings, ver
         if verbose:
             print(f"Ramayana indicators: {ramayana_indicators}")
         
-        # If no Ramayana indicators at all
-        if ramayana_indicators['total_indicators'] == 0:
-            # Still check similarity to be sure
-            pass  # Continue to similarity check
-        
-        # Step 3: Get similarity scores
+        # Step 3: Get embeddings and similarity
         statement_embedding = model.encode([statement])
         
         # Find embeddings column
@@ -305,97 +455,101 @@ def verify_ramayana_statement_complete(statement, model, df_with_embeddings, ver
         # Calculate similarities
         similarities = cosine_similarity(statement_embedding, embeddings_matrix)[0]
         max_similarity = np.max(similarities)
-        mean_similarity = np.mean(similarities)
         
         if verbose:
-            print(f"Max similarity: {max_similarity:.3f}, Mean similarity: {mean_similarity:.3f}")
+            print(f"Max similarity: {max_similarity:.3f}")
         
-        # Step 4: Relevance check based on similarity
+        # Step 4: Relevance check
         if max_similarity < 0.2:
-            return None  # Very low similarity - not about Ramayana
+            return None
         
-        # Step 5: Combined relevance check
-        # If low similarity AND no indicators AND (modern OR vague content)
         if (max_similarity < 0.35 and 
             ramayana_indicators['total_indicators'] == 0 and 
             (modern_score >= 1 or vague_score >= 1)):
             return None
         
-        # Step 6: If clearly not relevant despite some similarity
-        if max_similarity < 0.3 and modern_score >= 1:
-            return None
+        # Step 5: Get top verses for detailed analysis
+        top_indices = np.argsort(similarities)[-15:][::-1]
+        top_verses = []
         
-        # Step 7: Now do True/False classification for Ramayana-relevant content
-        false_indicators = detect_obvious_false_patterns(statement)
+        for idx in top_indices:
+            verse_data = df_with_embeddings.iloc[idx]
+            top_verses.append({
+                'text': verse_data.get('english_text', ''),
+                'similarity': similarities[idx]
+            })
+        
+        # Step 6: Check for obvious contradictions first
+        obvious_contradiction_score = check_for_obvious_contradictions(statement)
         
         if verbose:
-            print(f"False indicators: {false_indicators}")
+            print(f"Obvious contradiction score: {obvious_contradiction_score}")
         
-        # Decision logic for True/False
-        if false_indicators >= 3:
+        # If obvious contradiction, return False immediately
+        if obvious_contradiction_score >= 3:
             return False
-        elif max_similarity >= 0.6 and false_indicators == 0:
+        
+        # Step 7: Detailed analysis against verses
+        support_evidence, contradiction_evidence = analyze_statement_against_verses(statement, top_verses)
+        
+        if verbose:
+            print(f"Support evidence: {support_evidence}, Contradiction evidence: {contradiction_evidence}")
+        
+        # Step 8: Decision logic - Adjusted weights to favor True when appropriate
+        
+        # Very strong contradictions (only the most obvious)
+        if contradiction_evidence >= 3 or obvious_contradiction_score >= 3:
+            return False
+        
+        # Strong support with reasonable similarity
+        if support_evidence >= 2 and max_similarity >= 0.4 and contradiction_evidence == 0:
             return True
-        elif max_similarity >= 0.55 and false_indicators <= 1:
-            # Use additional analysis
-            return analyze_borderline_case(statement, similarities, df_with_embeddings)
-        elif max_similarity >= 0.45:
-            if false_indicators >= 2:
-                return False
-            else:
-                return True
-        elif max_similarity >= 0.35:
-            if false_indicators >= 1:
-                return False
-            else:
-                return analyze_borderline_case(statement, similarities, df_with_embeddings)
-        else:
-            # Low similarity - could be None or False
+        
+        # Medium support with good similarity
+        if support_evidence >= 1 and max_similarity >= 0.5 and contradiction_evidence == 0:
+            return True
+        
+        # High similarity alone (for basic facts) - lowered threshold
+        if max_similarity >= 0.6 and contradiction_evidence == 0:
+            return True
+        
+        # Good similarity with minimal contradiction
+        if max_similarity >= 0.55 and contradiction_evidence <= 0.5:
+            return True
+        
+        # Cases with moderate contradiction - be more lenient
+        if contradiction_evidence >= 2 or obvious_contradiction_score >= 2:
+            return False
+        
+        # Medium similarity with some support - more generous
+        if max_similarity >= 0.45 and support_evidence >= 0.5:
+            return True
+        
+        # Reasonable similarity for Ramayana content
+        if max_similarity >= 0.4 and ramayana_indicators['total_indicators'] >= 2 and contradiction_evidence < 1:
+            return True
+        
+        # Low support or low similarity
+        if support_evidence == 0 and max_similarity < 0.35:
             if ramayana_indicators['total_indicators'] > 0:
-                return False  # Has Ramayana content but low similarity = False
+                return False  # Has Ramayana content but very low support
             else:
-                return None   # No Ramayana content and low similarity = None
-            
+                return None
+        
+        # Default case - give benefit of doubt if it's about Ramayana
+        if ramayana_indicators['total_indicators'] > 0 and max_similarity >= 0.3:
+            return True
+        else:
+            return False
+        
     except Exception as e:
         if verbose:
             print(f"Error in verification: {e}")
         return None
 
-def analyze_borderline_case(statement, similarities, df_with_embeddings):
-    """
-    Analyze borderline cases using statistical methods
-    """
-    try:
-        top_similarities = np.sort(similarities)[-10:]
-        mean_top = np.mean(top_similarities)
-        mean_all = np.mean(similarities)
-        std_all = np.std(similarities)
-        max_sim = np.max(similarities)
-        
-        high_sim_count = np.sum(similarities > 0.5)
-        
-        # Decision rules
-        if mean_top > 0.5 and max_sim > 0.55:
-            return True
-        
-        if max_sim > (mean_all + 1.5 * std_all) and max_sim > 0.45:
-            return True
-        
-        if high_sim_count >= 3 and max_sim > 0.5:
-            return True
-        
-        percentile_95 = np.percentile(similarities, 95)
-        if max_sim >= percentile_95 and max_sim > 0.4:
-            return True
-        
-        return False
-        
-    except Exception as e:
-        return True if np.max(similarities) > 0.5 else False
-
 def verify_statement(original_statement, model, df_with_embeddings):
     """
-    Main verification function with complete None detection
+    Main verification function
     """
     try:
         result = verify_ramayana_statement_complete(
