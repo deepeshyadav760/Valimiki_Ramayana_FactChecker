@@ -12,15 +12,10 @@ ramayana-fact-verification/
 │   ├── ramayana_embeddings.pkl           # Embeddings generated for search
 │
 ├── data_scrapper.py                      # Script to scrape Ramayana verses
-├── embeddings.py                         # Script to generate embeddings
-├── evaluation.py                         # Evaluate model performance
-├── fact_verification.py                  # Core logic for fact checking
-├── main_function.py                      # Main pipeline function
+├── embeddings.py                         # Script to generate embedding
 ├── output_verified.csv                   # Output of verified facts
-├── preprocessing.py                      # Text preprocessing methods
 ├── ramayana_verify.py                    # Entry point for verifying user statements
 ├── requirements.txt                      # Required Python packages
-├── semantic_search.py                    # Semantic search using embeddings
 ├── statements.csv                        # Input CSV with statements to verify
 ├── README.md                             # Project documentation
 ```
